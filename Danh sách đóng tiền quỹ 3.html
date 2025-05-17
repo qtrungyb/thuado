@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Danh sách thua độ</title>
+<style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f5f7fa;
+    margin: 20px;
+    color: #333;
+  }
+  h1 {
+    text-align: center;
+    margin-bottom: 24px;
+    color: #222;
+  }
+  .tables-container {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+  table {
+    border-collapse: collapse;
+    width: 320px;
+    background: white;
+    box-shadow: 0 0 8px rgb(0 0 0 / 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+    user-select: none;
+  }
+  thead {
+    background-color: #004d40;
+    color: #e0f2f1;
+    font-weight: 600;
+    font-size: 1rem;
+  }
+  thead th {
+    padding: 10px 12px;
+    border-bottom: 2px solid #00251a;
+  }
+  tbody tr {
+    border-bottom: 1px solid #ddd;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+  }
+  tbody tr:hover {
+    background-color: #f1f9f8;
+  }
+  tbody tr.paid {
+    background-color: #d0f0d8 !important;
+    color: #117a37;
+  }
+  tbody tr.unpaid {
+    background-color: #f8d7da !important;
+    color: #721c24;
+  }
+  tbody td {
+    padding: 10px 12px;
+    text-align: center;
+    vertical-align: middle;
+  }
+  tbody td.status-paid {
+    color: #117a37;
+    font-weight: 600;
+  }
+  tbody td.status-unpaid {
+    color: #bd2130;
+    font-weight: 600;
+  }
+  .week-title {
+    text-align: center;
+    font-weight: 700;
+    background-color: #00796b;
+    color: #e0f2f1;
+    padding: 10px 0;
+    font-size: 1.1rem;
+    border-radius: 8px 8px 0 0;
+    user-select: none;
+  }
+  .controls {
+    max-width: 1320px;
+    margin: 0 auto;
+    text-align: center;
+  }
+  .controls button {
+    background-color: #00796b;
+    border: none;
+    color: white;
+    padding: 10px 18px;
+    margin: 5px 12px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 3px 6px rgb(0 121 107 / 0.4);
+    transition: background-color 0.3s ease;
+    user-select: none;
+  }
+  .controls button:hover:not(:disabled) {
+    background-color: #004d40;
+  }
+  .controls button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  #modalOverlay {
+    position: fixed;
+    top:0; left:0; width:100%; height:100%;
+    background: rgba(0,0,0,0.4);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+  }
+  #modal {
+    background: white;
+    padding: 24px 28px;
+    border-radius: 12px;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 0 20px rgb(0 0 0 / 0.2);
+  }
+  #modal h2 {
+    margin-top: 0;
+    color: #00796b;
+    text-align: center;
+  }
+  #modal label {
+    display: block;
+    margin-top: 14px;
+    font-weight: 600;
+    color: #444;
+  }
+  #modal input[type=text],
+  #modal input[type=number],
+  #modal select {
+    width: 100%;
+    padding: 8px 10px;
+    margin-top: 6px;
+    border: 1.8px solid #999;
+    border-radius: 6px;
+    font-size: 1rem;
+    box-sizing: border-box;
+    transition: border-color 0.3s ease;
+  }
+  #modal input[type=text]:focus,
+  #modal input[type=number]:focus,
+  #modal select:focus {
+    border-color: #00796b;
+    outline: none;
+  }
+  #modal .buttons {
+    margin-top: 22px;
+    text-align: center;
+  }
+  #modal .buttons button {
+    background-color: #00796b;
+    border: none;
+    color: white;
+    padding: 10px 16px;
+    margin: 0 10px;
+    border-radius: 6px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 3px 6px rgb(0 121 107 / 0.5);
+    user-select: none;
+  }
+  #modal .buttons button.cancel-btn {
+    background-color: #c62828;
+    box-shadow: 0 3px 6px rgb(198 40 40 / 0.7);
+  }
+  #modal .buttons button:hover {
+    filter: brightness(1.1);
+  }
+  .selected-row {
+    outline: 3px solid #00796b !important;
+    outline-offset: -3px;
+    background-color: #b6ddd1 !important;
+  }
+  /* Responsive */
+  @media (max-width: 1360px) {
+    .tables-container {
+      justify-content: center;
+    }
+    table {
+      width: 100%;
+      max-width: 360px;
+    }
+  }
+</style>
+</head>
+<body>
+  <h1>DANH SÁCH THUA ĐỘ</h1>
+  <div class="tables-container" role="region" aria-label="Danh sách đóng tiền quỹ các tuần">
+    <section>
+      <div class="week-title">Tuần 1</div>
+      <table id="table-1" aria-describedby="desc-1" tabindex="0" aria-label="Danh sách đóng tiền quỹ tuần 1">
+        <thead>
+          <tr>
+            <th>Stt</th>
+            <th>Tên</th>
+            <th>Số tiền</th>
+            <th>Trạng thái</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <p id="desc-1" class="sr-only"></p>
+    </section>
+    <section>
+      <div class="week-title">Tuần 2</div>
+      <table id="table-2" aria-describedby="desc-2" tabindex="0" aria-label="Danh sách đóng tiền quỹ tuần 2">
+        <thead>
+          <tr>
+            <th>Stt</th>
+            <th>Tên</th>
+            <th>Số tiền</th>
+            <th>Trạng thái</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <p id="desc-2" class="sr-only"></p>
+    </section>
+    <section>
+      <div class="week-title">Tuần 3</div>
+      <table id="table-3" aria-describedby="desc-3" tabindex="0" aria-label="Danh sách đóng tiền quỹ tuần 3">
+        <thead>
+          <tr>
+            <th>Stt</th>
+            <th>Tên</th>
+            <th>Số tiền</th>
+            <th>Trạng thái</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <p id="desc-3" class="sr-only"></p>
+    </section>
+    <section>
+      <div class="week-title">Tuần 4</div>
+      <table id="table-4" aria-describedby="desc-4" tabindex="0" aria-label="Danh sách đóng tiền quỹ tuần 4">
+        <thead>
+          <tr>
+            <th>Stt</th>
+            <th>Tên</th>
+            <th>Số tiền</th>
+            <th>Trạng thái</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <p id="desc-4" class="sr-only"></p>
+    </section>
+  </div>
+  <div class="controls" aria-label="Các nút điều khiển">
+    <button id="addBtn" aria-describedby="desc-add">Thêm</button>
+    <button id="editBtn" aria-describedby="desc-edit" disabled>Sửa</button>
+    <button id="deleteBtn" aria-describedby="desc-delete" disabled>Xóa</button>
+    <button id="resetBtn" aria-describedby="desc-reset">Reset</button>
+    <p id="desc-add" class="sr-only"></p>
+    <p id="desc-edit" class="sr-only"></p>
+    <p id="desc-delete" class="sr-only"></p>
+    <p id="desc-reset" class="sr-only"></p>
+  </div>
+
+  <!-- Modal for Add/Edit -->
+  <div id="modalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalDesc">
+    <div id="modal">
+      <h2 id="modalTitle">Thêm người nộp quỹ</h2>
+      <form id="formEntry" novalidate>
+        <label for="nameInput">Tên <span style="color:red">*</span></label>
+        <input type="text" id="nameInput" name="name" placeholder="Nhập tên" required autocomplete="off" />
+
+        <label for="amountInput">Số tiền (đ) <span style="color:red">*</span></label>
+        <select id="amountInput" name="amount" required>
+            <option value="20000">20000</option>
+            <option value="30000">30000</option>
+            <option value="50000">50000</option>
+            <option value="other">Khác</option>
+        </select>
+        <input type="number" id="customAmountInput" name="customAmount" placeholder="Nhập số tiền" min="0" style="display:none;" />
+
+        <label for="statusInput">Trạng thái <span style="color:red">*</span></label>
+        <select id="statusInput" name="status" required>
+          <option value="paid">Đã nộp</option>
+          <option value="unpaid">Chưa nộp</option>
+        </select>
+
+        <label for="weekInput">Tuần <span style="color:red">*</span></label>
+        <select id="weekInput" name="week" required>
+          <option value="1">Tuần 1</option>
+          <option value="2">Tuần 2</option>
+          <option value="3">Tuần 3</option>
+          <option value="4">Tuần 4</option>
+        </select>
+
+        <div class="buttons">
+          <button type="submit" id="saveBtn">Lưu</button>
+          <button type="button" id="cancelBtn" class="cancel-btn">Hủy</button>
+        </div>
+      </form>
+      <p id="modalDesc" class="sr-only"></p>
+    </div>
+  </div>
+
+<script>
+  const addBtn = document.getElementById('addBtn');
+  const editBtn = document.getElementById('editBtn');
+  const deleteBtn = document.getElementById('deleteBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const modalOverlay = document.getElementById('modalOverlay');
+  const modalTitle = document.getElementById('modalTitle');
+  const formEntry = document.getElementById('formEntry');
+  const nameInput = document.getElementById('nameInput');
+  const amountInput = document.getElementById('amountInput');
+  const customAmountInput = document.getElementById('customAmountInput');
+  const statusInput = document.getElementById('statusInput');
+  const weekInput = document.getElementById('weekInput');
+  const saveBtn = document.getElementById('saveBtn');
+  const cancelBtn = document.getElementById('cancelBtn');
+
+  let data = [];
+  let selectedRow = null;
+  let selectedIndex = null;
+
+  function loadData() {
+    const stored = localStorage.getItem('fundContributionData');
+    if (stored) {
+      try {
+        data = JSON.parse(stored);
+        if (!Array.isArray(data)) {
+          data = [];
+        }
+      } catch (e) {
+        data = [];
+      }
+    } else {
+      data = [];
+    }
+  }
+
+  function saveData() {
+    localStorage.setItem('fundContributionData', JSON.stringify(data));
+  }
+
+  function renderTables() {
+    for(let w=1; w<=4; w++) {
+      const tbody = document.querySelector(`#table-${w} tbody`);
+      tbody.innerHTML = '';
+      const weekData = data.filter(item => item.week === w);
+      weekData.forEach((item, i) => {
+        const tr = document.createElement('tr');
+        tr.tabIndex = 0;
+        tr.dataset.index = data.indexOf(item);
+        tr.classList.toggle('paid', item.status === 'paid');
+        tr.classList.toggle('unpaid', item.status === 'unpaid');
+        if (selectedIndex !== null && tr.dataset.index == selectedIndex) {
+          tr.classList.add('selected-row');
+          selectedRow = tr;
+        }
+
+        const noTd = document.createElement('td');
+        noTd.textContent = i + 1;
+
+        const nameTd = document.createElement('td');
+        nameTd.textContent = item.name;
+
+        const amtTd = document.createElement('td');
+        amtTd.textContent = Number(item.amount).toLocaleString('vi-VN') + ' đ';
+
+        const statusTd = document.createElement('td');
+        statusTd.textContent = item.status === 'paid' ? 'Đã nộp' : 'Chưa nộp';
+        statusTd.classList.add(item.status === 'paid' ? 'status-paid' : 'status-unpaid');
+
+        tr.appendChild(noTd);
+        tr.appendChild(nameTd);
+        tr.appendChild(amtTd);
+        tr.appendChild(statusTd);
+        tbody.appendChild(tr);
+      });
+    }
+    updateButtons();
+  }
+
+  function clearSelection() {
+    if (selectedRow) {
+      selectedRow.classList.remove('selected-row');
+    }
+    selectedRow = null;
+    selectedIndex = null;
+    updateButtons();
+  }
+
+  function updateButtons() {
+    const enabled = selectedIndex !== null;
+    editBtn.disabled = !enabled;
+    deleteBtn.disabled = !enabled;
+  }
+
+  function selectRow(tr) {
+    clearSelection();
+    selectedRow = tr;
+    selectedRow.classList.add('selected-row');
+    selectedIndex = Number(selectedRow.dataset.index);
+    updateButtons();
+  }
+
+  function init() {
+    loadData();
+    renderTables();
+
+    for(let w=1; w<=4; w++) {
+      const table = document.getElementById(`table-${w}`);
+      table.querySelector('tbody').addEventListener('click', e => {
+        let tr = e.target.closest('tr');
+        if(tr) {
+          selectRow(tr);
+        }
+      });
+      table.querySelector('tbody').addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          let tr = e.target.closest('tr');
+          if(tr) {
+            e.preventDefault();
+            selectRow(tr);
+          }
+        }
+      });
+    }
+
+    addBtn.addEventListener('click', () => {
+      modalTitle.textContent = 'Thêm người';
+      formEntry.reset();
+      customAmountInput.style.display = 'none'; // Ẩn trường nhập số tiền tùy ý
+      if (selectedIndex !== null) {
+        const current = data[selectedIndex];
+        weekInput.value = current.week;
+      } else {
+        weekInput.value = '1';
+      }
+      saveBtn.textContent = 'Thêm';
+      modalOverlay.style.display = 'flex';
+      nameInput.focus();
+      selectedIndex = null;
+      updateButtons();
+    });
+
+    editBtn.addEventListener('click', () => {
+      if (selectedIndex === null) return;
+      modalTitle.textContent = 'Sửa người nộp quỹ';
+      const entry = data[selectedIndex];
+      nameInput.value = entry.name;
+      amountInput.value = entry.amount === 2000 || entry.amount === 30000 || entry.amount === 50000 ? entry.amount : 'other';
+      customAmountInput.value = entry.amount > 50000 ? entry.amount : ''; // Hiển thị số tiền nếu là tùy ý
+      customAmountInput.style.display = entry.amount > 50000 ? 'block' : 'none'; // Hiển thị trường nhập nếu là tùy ý
+      statusInput.value = entry.status;
+      weekInput.value = entry.week;
+      saveBtn.textContent = 'Lưu';
+      modalOverlay.style.display = 'flex';
+      nameInput.focus();
+    });
+
+    deleteBtn.addEventListener('click', () => {
+      if (selectedIndex === null) return;
+      if (confirm('choắc choắn chưa?')) {
+        data.splice(selectedIndex, 1);
+        saveData();
+        renderTables();
+        clearSelection();
+      }
+    });
+
+    resetBtn.addEventListener('click', () => {
+      if (confirm('Choắc choắn chưa?')) {
+        data = []; // Xóa tất cả dữ liệu
+        saveData(); // Lưu lại trạng thái rỗng
+        renderTables(); // Cập nhật lại bảng
+        clearSelection(); // Xóa lựa chọn
+      }
+    });
+
+    cancelBtn.addEventListener('click', () => {
+      modalOverlay.style.display = 'none';
+    });
+
+    amountInput.addEventListener('change', () => {
+      if (amountInput.value === 'other') {
+          customAmountInput.style.display = 'block';
+          customAmountInput.focus();
+      } else {
+          customAmountInput.style.display = 'none';
+          customAmountInput.value = ''; // Reset giá trị khi không chọn "Khác"
+      }
+    });
+
+    formEntry.addEventListener('submit', e => {
+      e.preventDefault();
+      const name = nameInput.value.trim();
+      const amount = amountInput.value === 'other' ? Number(customAmountInput.value) : Number(amountInput.value);
+      const status = statusInput.value;
+      const week = Number(weekInput.value);
+      
+      if (!name || isNaN(amount) || amount < 0 || !status || ![1,2,3,4].includes(week)) {
+        alert('Vui lòng điền đầy đủ và hợp lệ thông tin.');
+        return;
+      }
+      
+      if (selectedIndex === null) {
+        data.push({name, amount, status, week});
+      } else {
+        data[selectedIndex] = {name, amount, status, week};
+      }
+      saveData();
+      renderTables();
+      modalOverlay.style.display = 'none';
+      clearSelection();
+    });
+
+    modalOverlay.addEventListener('click', e => {
+      if(e.target === modalOverlay) {
+        modalOverlay.style.display = 'none';
+      }
+    });
+
+    // Keyboard shortcut: Esc to close modal
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && modalOverlay.style.display === 'flex') {
+        modalOverlay.style.display = 'none';
+      }
+    });
+  }
+
+  init();
+</script>
+
+</body>
+</html>
